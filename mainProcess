@@ -1,0 +1,64 @@
+#With the data file stored in Object Storage, we can now access it using the configured SparkContext in our notebook.
+
+air_quality = sc.textFile("swift://notebooks.keyfactor/annual_all_2015.csv")
+
+print "Total records in the annual_all_2015.csv dataset:", air_quality.count()
+print "The first row in the annual_all_2015.csv dataset:\n", air_quality.first()
+
+aqParse = air_quality.map(lambda line : line.split(","))
+print "It's an example of the splited data:\n", aqParse.first()
+
+print "Here are the city list you can look up!"
+cities = set()
+cities_d = aqParse.map(lambda x : str(x[-4])).collect()
+for each in cities_d:
+    cities.add(each)
+for city in cities:
+    print city
+
+city = str(raw_input("Please select the city you need to analyse:  "))
+if city in str(aqParse.collect()):
+    aqLoc = aqParse.filter(lambda x: str(x[-4]) == ('"' + city + '"'))
+    print "City is found! Ready to analyse!"
+else:
+    print "Sorry, the city is not found!" 
+
+print "All data of the city %s:\n"%city, aqLoc.collect()
+
+# x[8] is the parameter name
+# x[29] is the 1st max value
+aqParam = aqLoc.map(lambda x : (str(x[8]), (float(x[29]),1)))
+# from operator import add
+# aqAddByKey = aqParam.reduceByKey(add).sortByKey()
+aqAddByKey = aqParam.reduceByKey(lambda v1,v2 : list((v1[0]+v2[0], v1[1]+v2[1]))).sortByKey()
+aqAddByKey.first()
+
+aqAverages = aqAddByKey.map(lambda k: (k[0], k[1][0] / float(k[1][1] ) ) )
+aqAverages.collect()
+
+valueTop10=[]
+paramTop10=[]
+print "Factors contributing to air quality in %s:\n"%city
+for pair in aqAverages.map(lambda (x,y) : (y,x)).top(10):
+    valueTop10.append(pair[0])
+    paramTop10.append(pair[1])
+    print "Air Quality Parameter %s had average Max Value of %f" % (pair[1],pair[0])
+
+%matplotlib inline
+import numpy as np
+import matplotlib.pyplot as plt
+
+N = len(valueTop10)
+index = np.arange(N)  
+bar_width = 0.5
+
+plt.bar(index, valueTop10, bar_width,
+                 color='r')
+plt.xlabel('Air Quality Parameter')
+plt.ylabel('Average Max Value')
+plt.title(str(N) + ' Factors contribute to Air Quality of ' + city + ' in 2015', y=1.08)
+plt.xticks(index + bar_width, paramTop10, rotation=90, horizontalalignment = 'center')
+plt.show()
+
+
+
