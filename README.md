@@ -33,3 +33,15 @@ Now we can start to clean and select the data we want.
 
 **2. If the city is found in the dataset, then begin extract data. If not, the user will get an error message.**
 
+**3. Clean and select the data we need about the city, here we select all parameters and their max values, then we can do map reduce to process data.**
+
+##Analyse Data
+
+In order to find the factors contribute to the air quality in a particular location, we **find out the average value of each air parameter's max value**, then we **select the top 10 parameters** and assume these parameters are factors we want. 
+
+If the location doesn't have 10 parameters, we just show all the parameters it has.
+
+
+
+
+
